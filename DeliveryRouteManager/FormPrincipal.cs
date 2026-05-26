@@ -53,11 +53,11 @@ namespace DeliveryRouteManager
 
         private void BtnHistorial_Click(object sender, EventArgs e)
         {
-            //FormHistorial formHistorial = new(_historial)
-            //{
-            //    MdiParent = this
-            //};
-            //formHistorial.Show();
+            FormHistorial formHistorial = new(_historial)
+            {
+                MdiParent = this
+            };
+            formHistorial.Show();
         }
 
         private void BtnSalir_Click(object sender, EventArgs e)
