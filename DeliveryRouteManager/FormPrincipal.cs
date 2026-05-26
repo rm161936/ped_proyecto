@@ -1,6 +1,7 @@
 using DeliveryRouteManager.Database;
 using DeliveryRouteManager.DataStructures;
 using DeliveryRouteManager.Forms;
+using DeliveryRouteManager.Models;
 
 namespace DeliveryRouteManager
 {
@@ -8,12 +9,18 @@ namespace DeliveryRouteManager
     {
         private Grafo _grafo;
         private DbManager _db;
+        private ColaPedidos _cola;
+        private HistorialEntregas _historial;
+        private Stack<(Pedido Pedido, List<NodoPunto> Ruta)> _pilaDeshacer;
 
         public FormPrincipal()
         {
             InitializeComponent();
             _db = new DbManager();
             _grafo = new Grafo();
+            _cola = new ColaPedidos();
+            _historial = new HistorialEntregas();
+            _pilaDeshacer = new Stack<(Pedido, List<NodoPunto>)>();
             CargarGrafoDesdeDb();
         }
 
@@ -37,7 +44,7 @@ namespace DeliveryRouteManager
 
         private void BtnPedidos_Click(object sender, EventArgs e)
         {
-            FormPedidos formPedidos = new()
+            FormPedidos formPedidos = new(_grafo, _db, _cola, _historial, _pilaDeshacer)
             {
                 MdiParent = this
             };
@@ -46,11 +53,11 @@ namespace DeliveryRouteManager
 
         private void BtnHistorial_Click(object sender, EventArgs e)
         {
-            FormHistorial formHistorial = new()
-            {
-                MdiParent = this
-            };
-            formHistorial.Show();
+            //FormHistorial formHistorial = new(_historial)
+            //{
+            //    MdiParent = this
+            //};
+            //formHistorial.Show();
         }
 
         private void BtnSalir_Click(object sender, EventArgs e)
