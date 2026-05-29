@@ -22,10 +22,10 @@ namespace DeliveryRouteManager.Forms
         private List<NodoPunto> _rutaResaltada;
 
         private const int RADIO_NODO = 22;
-        private const int ITERACIONES_LAYOUT = 300;
-        private const double FUERZA_REPULSION = 8000.0;
-        private const double FUERZA_ATRACCION = 0.03;
-        private const double AMORTIGUACION = 0.85;
+        private const int ITERACIONES_LAYOUT = 500;
+        private const double FUERZA_REPULSION = 22000.0;
+        private const double FUERZA_ATRACCION = 0.02;
+        private const double AMORTIGUACION = 0.88;
 
         public FormGrafo(Grafo grafo, DbManager db)
         {
@@ -34,13 +34,13 @@ namespace DeliveryRouteManager.Forms
             _db = db;
             _nodoSeleccionado = null;
             _rutaResaltada = new List<NodoPunto>();
+            this.Shown += FormGrafo_Shown;
             CargarDatos();
         }
 
         private void CargarDatos()
         {
             ActualizarCombos();
-            EjecutarLayout();
             canvasGrafo.Invalidate();
         }
 
@@ -58,6 +58,19 @@ namespace DeliveryRouteManager.Forms
                 cmbOrigenRuta.Items.Add(nodo);
                 cmbDestinoRuta.Items.Add(nodo);
             }
+        }
+
+        private void FormGrafo_Shown(object sender, EventArgs e)
+        {
+            EjecutarLayout();
+            GuardarPosicionesEnDb();
+            canvasGrafo.Refresh();
+        }
+
+        private void GuardarPosicionesEnDb()
+        {
+            foreach (NodoPunto nodo in _grafo.ObtenerNodos())
+                _db.ActualizarPosicionPunto(nodo.Id, nodo.X, nodo.Y);
         }
 
         // ─── FORCE-DIRECTED LAYOUT ────────────────────────────────────────────────
@@ -175,8 +188,8 @@ namespace DeliveryRouteManager.Forms
                     vy = (vy + fuerzas[nodo.Id].fy) * AMORTIGUACION;
                     velocidades[nodo.Id] = (vx, vy);
 
-                    nodo.X = Math.Clamp(nodo.X + vx, RADIO_NODO + 20, ancho - RADIO_NODO - 20);
-                    nodo.Y = Math.Clamp(nodo.Y + vy, RADIO_NODO + 30, alto - RADIO_NODO - 30);
+                    nodo.X = Math.Clamp(nodo.X + vx, RADIO_NODO + 60, ancho - RADIO_NODO - 90);
+                    nodo.Y = Math.Clamp(nodo.Y + vy, RADIO_NODO + 50, alto - RADIO_NODO - 55);
                 }
             }
         }
@@ -196,8 +209,9 @@ namespace DeliveryRouteManager.Forms
             int ancho = canvasGrafo.Width > 0 ? canvasGrafo.Width : 800;
             int alto = canvasGrafo.Height > 0 ? canvasGrafo.Height : 600;
 
-            double x = ancho / 2.0;
-            double y = alto / 2.0;
+            Random rnd = new Random();
+            double x = rnd.NextDouble() * (ancho - RADIO_NODO * 6) + RADIO_NODO * 3;
+            double y = rnd.NextDouble() * (alto - RADIO_NODO * 6) + RADIO_NODO * 3;
 
             int id = _db.InsertarPunto(nombre, x, y);
             NodoPunto nuevo = new NodoPunto(id, nombre, x, y);
@@ -206,7 +220,8 @@ namespace DeliveryRouteManager.Forms
             txtNombrePunto.Clear();
             ActualizarCombos();
             EjecutarLayout();
-            canvasGrafo.Invalidate();
+            GuardarPosicionesEnDb();
+            canvasGrafo.Refresh();
         }
 
         private void btnAgregarRuta_Click(object sender, EventArgs e)
@@ -249,7 +264,8 @@ namespace DeliveryRouteManager.Forms
             cmbOrigenRuta.SelectedIndex = -1;
             cmbDestinoRuta.SelectedIndex = -1;
             EjecutarLayout();
-            canvasGrafo.Invalidate();
+            GuardarPosicionesEnDb();
+            canvasGrafo.Refresh();
         }
 
         private void btnCalcularRuta_Click(object sender, EventArgs e)
@@ -314,8 +330,12 @@ namespace DeliveryRouteManager.Forms
                             (float)nodo.X, (float)nodo.Y,
                             (float)arista.Destino.X, (float)arista.Destino.Y);
 
-                        float midX = (float)((nodo.X + arista.Destino.X) / 2);
-                        float midY = (float)((nodo.Y + arista.Destino.Y) / 2);
+                        // Offset perpendicular al eje de la arista para no tapar el trazo
+                        double edgeDx = arista.Destino.X - nodo.X;
+                        double edgeDy = arista.Destino.Y - nodo.Y;
+                        double edgeLen = Math.Max(Math.Sqrt(edgeDx * edgeDx + edgeDy * edgeDy), 1.0);
+                        float midX = (float)((nodo.X + arista.Destino.X) / 2) + (float)(-edgeDy / edgeLen) * 12;
+                        float midY = (float)((nodo.Y + arista.Destino.Y) / 2) + (float)(edgeDx / edgeLen) * 12;
 
                         string etiqueta = $"{arista.Peso:F1} km";
                         SizeF tamEtiqueta = g.MeasureString(etiqueta, fuentePeso);
@@ -358,10 +378,15 @@ namespace DeliveryRouteManager.Forms
                     RADIO_NODO * 2);
 
                 SizeF tamNombre = g.MeasureString(nodo.Nombre, fuenteNombre);
+                float nameX = (float)nodo.X - tamNombre.Width / 2;
+                float nameY = (float)nodo.Y + RADIO_NODO + 4;
 
-                g.DrawString(nodo.Nombre, fuenteNombre, Brushes.Black,
-                    (float)nodo.X - tamNombre.Width / 2,
-                    (float)nodo.Y + RADIO_NODO + 3);
+                using SolidBrush fondoNombre = new SolidBrush(Color.FromArgb(160, 25, 25, 25));
+                g.FillRectangle(fondoNombre,
+                    nameX - 3, nameY - 1,
+                    tamNombre.Width + 6, tamNombre.Height + 2);
+
+                g.DrawString(nodo.Nombre, fuenteNombre, Brushes.White, nameX, nameY);
             }
 
             fuentePeso.Dispose();

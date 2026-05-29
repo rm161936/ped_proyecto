@@ -73,6 +73,26 @@ namespace DeliveryRouteManager.Forms
             btnDeshacer.Enabled = _pilaDeshacer.Count > 0;
         }
 
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+
+            NodoPunto? seleccionado = cmbPuntoEntrega.SelectedItem as NodoPunto;
+
+            cmbPuntoEntrega.Items.Clear();
+            foreach (NodoPunto nodo in _grafo.ObtenerNodos())
+                cmbPuntoEntrega.Items.Add(nodo);
+
+            // Restaura la selección previa si todavía existe
+            if (seleccionado != null)
+            {
+                NodoPunto? restaurado = cmbPuntoEntrega.Items
+                    .OfType<NodoPunto>()
+                    .FirstOrDefault(n => n.Id == seleccionado.Id);
+                cmbPuntoEntrega.SelectedItem = restaurado;
+            }
+        }
+
         // ── REGISTRAR PEDIDO ──────────────────────────────────────────────────────
 
         private void btnRegistrarPedido_Click(object sender, EventArgs e)
@@ -176,13 +196,23 @@ namespace DeliveryRouteManager.Forms
             string rutaTexto = string.Join(" → ", _rutaEnProceso);
             double distancia = CalcularDistanciaRuta(_rutaEnProceso);
 
-            _historial.AgregarEntrega(_pedidoEnProceso, rutaTexto, distancia);
+            // Guarda en lista enlazada en memoria
+            _historial.AgregarEntrega(_pedidoEnProceso, rutaTexto, distancia, DateTime.Now);
+
+            // Guarda en BD con todos los campos del pedido
             _db.InsertarHistorial(
                 _pedidoEnProceso.Id,
+                _pedidoEnProceso.Cliente,
+                _pedidoEnProceso.PuntoEntrega.Id,
+                (int)_pedidoEnProceso.Prioridad,
+                _pedidoEnProceso.FechaRegistro.ToString("yyyy-MM-dd HH:mm:ss"),
                 rutaTexto,
                 distancia,
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             );
+
+            // Elimina el pedido de la tabla Pedidos
+            _db.EliminarPedido(_pedidoEnProceso.Id);
 
             MessageBox.Show(
                 $"Entrega #{_pedidoEnProceso.Id} confirmada.\nCliente: {_pedidoEnProceso.Cliente}",
@@ -192,7 +222,6 @@ namespace DeliveryRouteManager.Forms
             _pedidoEnProceso = null;
             _rutaEnProceso = [];
             lblRutaAsignada.Text = "Sin pedido en proceso actualmente.";
-
             ActualizarBotones();
         }
 

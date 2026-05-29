@@ -18,10 +18,13 @@ namespace DeliveryRouteManager.DataStructures
             _total = 0;
         }
 
-        public void AgregarEntrega(Pedido pedido, string rutaRecorrida, double distanciaTotal)
+        // Sobrecarga usada al cargar desde base de datos (preserva fecha original)
+        public void AgregarEntrega(Pedido pedido, string rutaRecorrida,
+            double distanciaTotal, DateTime fechaEntrega)
         {
             NodoHistorial nuevo = new(pedido, rutaRecorrida, distanciaTotal)
             {
+                FechaEntrega = fechaEntrega,
                 Siguiente = _cabeza
             };
             _cabeza = nuevo;

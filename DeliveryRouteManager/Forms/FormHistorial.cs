@@ -1,4 +1,5 @@
-﻿using DeliveryRouteManager.DataStructures;
+﻿using DeliveryRouteManager.Database;
+using DeliveryRouteManager.DataStructures;
 using DeliveryRouteManager.Models;
 
 namespace DeliveryRouteManager.Forms
@@ -6,11 +7,19 @@ namespace DeliveryRouteManager.Forms
     public partial class FormHistorial : Form
     {
         private readonly HistorialEntregas _historial;
+        private readonly DbManager _db;
 
-        public FormHistorial(HistorialEntregas historial)
+        public FormHistorial(HistorialEntregas historial, DbManager db)
         {
             InitializeComponent();
             _historial = historial;
+            _db = db;
+            CargarHistorial();
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
             CargarHistorial();
         }
 
@@ -20,33 +29,40 @@ namespace DeliveryRouteManager.Forms
         {
             dgvHistorial.Rows.Clear();
 
-            List<NodoHistorial> lista = _historial.ObtenerHistorial();
+            var registros = _db.CargarHistorialCompleto();
+            int mostrados = 0;
 
-            foreach (NodoHistorial nodo in lista)
+            foreach (var (idPedido, cliente, nombrePunto, prioridad,
+                          rutaRecorrida, distanciaTotal, fechaEntrega) in registros)
             {
                 bool coincideCliente = string.IsNullOrEmpty(filtroCliente)
-                    || nodo.Pedido.Cliente.ToLower().Contains(filtroCliente.ToLower());
+                    || cliente.ToLower().Contains(filtroCliente.ToLower());
 
                 bool coincideFecha = filtroFecha == null
-                    || nodo.FechaEntrega.Date == filtroFecha.Value.Date;
+                    || (DateTime.TryParse(fechaEntrega, out DateTime fe)
+                        && fe.Date == filtroFecha.Value.Date);
 
                 if (!coincideCliente || !coincideFecha) continue;
 
-                string prioridadTexto = nodo.Pedido.Prioridad.ToString();
+                string prioridadTexto = ((Prioridad)prioridad).ToString();
+                string fechaMostrar = DateTime.TryParse(fechaEntrega, out DateTime fd)
+                    ? fd.ToString("dd/MM/yyyy HH:mm")
+                    : fechaEntrega;
 
                 dgvHistorial.Rows.Add(
-                    nodo.Pedido.Id,
-                    nodo.Pedido.Cliente,
-                    nodo.Pedido.PuntoEntrega.Nombre,
+                    idPedido,
+                    cliente,
+                    nombrePunto,
                     prioridadTexto,
-                    nodo.RutaRecorrida,
-                    $"{nodo.DistanciaTotal:F2} km",
-                    nodo.FechaEntrega.ToString("dd/MM/yyyy HH:mm")
+                    rutaRecorrida,
+                    $"{distanciaTotal:F2} km",
+                    fechaMostrar
                 );
+                mostrados++;
             }
 
-            lblTotalEntregas.Text = $"Total entregas: {_historial.TotalEntregas()}  |  " +
-                                    $"Mostrando: {dgvHistorial.Rows.Count}";
+            lblTotalEntregas.Text =
+                $"Total entregas: {registros.Count}  |  Mostrando: {mostrados}";
         }
 
         private void btnFiltrar_Click(object sender, EventArgs e)
