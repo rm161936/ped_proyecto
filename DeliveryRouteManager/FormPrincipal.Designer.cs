@@ -112,7 +112,7 @@
 
             // ── VERSIÓN ─────────────────────────────────────────
             this.lblVersion = new Label();
-            this.lblVersion.Text = "v1.0.0";
+            this.lblVersion.Text = "v1.2.0";
             this.lblVersion.ForeColor = System.Drawing.Color.FromArgb(90, 90, 90);
             this.lblVersion.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.lblVersion.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;

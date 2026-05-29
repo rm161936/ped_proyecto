@@ -24,42 +24,108 @@ namespace DeliveryRouteManager.Database
             conn.Open();
 
             string sql = @"
-                CREATE TABLE IF NOT EXISTS Puntos (
-                    Id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Nombre  TEXT    NOT NULL,
-                    X       REAL    NOT NULL,
-                    Y       REAL    NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS Rutas (
-                    Id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                    IdOrigen  INTEGER NOT NULL,
-                    IdDestino INTEGER NOT NULL,
-                    Peso      REAL    NOT NULL,
-                    FOREIGN KEY (IdOrigen)  REFERENCES Puntos(Id),
-                    FOREIGN KEY (IdDestino) REFERENCES Puntos(Id)
-                );
-
-                CREATE TABLE IF NOT EXISTS Pedidos (
-                    Id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Cliente       TEXT    NOT NULL,
-                    IdPunto       INTEGER NOT NULL,
-                    Prioridad     INTEGER NOT NULL,
-                    FechaRegistro TEXT    NOT NULL,
-                    FOREIGN KEY (IdPunto) REFERENCES Puntos(Id)
-                );
-
-                CREATE TABLE IF NOT EXISTS Historial (
-                    Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                    IdPedido       INTEGER NOT NULL,
-                    RutaRecorrida  TEXT    NOT NULL,
-                    DistanciaTotal REAL    NOT NULL,
-                    FechaEntrega   TEXT    NOT NULL
-                );";
+        CREATE TABLE IF NOT EXISTS Puntos (
+            Id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            Nombre  TEXT    NOT NULL,
+            X       REAL    NOT NULL,
+            Y       REAL    NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS Rutas (
+            Id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            IdOrigen  INTEGER NOT NULL,
+            IdDestino INTEGER NOT NULL,
+            Peso      REAL    NOT NULL,
+            FOREIGN KEY (IdOrigen)  REFERENCES Puntos(Id),
+            FOREIGN KEY (IdDestino) REFERENCES Puntos(Id)
+        );
+        CREATE TABLE IF NOT EXISTS Pedidos (
+            Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            Cliente       TEXT    NOT NULL,
+            IdPunto       INTEGER NOT NULL,
+            Prioridad     INTEGER NOT NULL,
+            FechaRegistro TEXT    NOT NULL,
+            FOREIGN KEY (IdPunto) REFERENCES Puntos(Id)
+        );
+        CREATE TABLE IF NOT EXISTS Historial (
+            Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            IdPedido            INTEGER NOT NULL,
+            Cliente             TEXT    NOT NULL DEFAULT '',
+            IdPunto             INTEGER NOT NULL DEFAULT 0,
+            Prioridad           INTEGER NOT NULL DEFAULT 1,
+            FechaRegistroPedido TEXT    NOT NULL DEFAULT '',
+            RutaRecorrida       TEXT    NOT NULL,
+            DistanciaTotal      REAL    NOT NULL,
+            FechaEntrega        TEXT    NOT NULL
+        );";
 
             using SqliteCommand cmd = new SqliteCommand(sql, conn);
             cmd.ExecuteNonQuery();
+
+            // Migra tablas existentes si les faltan columnas nuevas
+            MigrarHistorial(conn);
         }
+
+        private void MigrarHistorial(SqliteConnection conn)
+        {
+            string[] columnas = {
+        "ALTER TABLE Historial ADD COLUMN Cliente             TEXT    NOT NULL DEFAULT ''",
+        "ALTER TABLE Historial ADD COLUMN IdPunto             INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE Historial ADD COLUMN Prioridad           INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE Historial ADD COLUMN FechaRegistroPedido TEXT    NOT NULL DEFAULT ''"
+    };
+            foreach (string alter in columnas)
+            {
+                try
+                {
+                    using SqliteCommand cmd = new SqliteCommand(alter, conn);
+                    cmd.ExecuteNonQuery();
+                }
+                catch { } // La columna ya existe, se ignora
+            }
+        }
+
+        // ── HISTORIAL ─────────────────────────────────────────────────────────────────
+        public void InsertarHistorial(int idPedido, string cliente, int idPunto,
+    int prioridad, string fechaRegistroPedido,
+    string ruta, double distancia, string fechaEntrega)
+        {
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = @"INSERT INTO Historial 
+        (IdPedido, Cliente, IdPunto, Prioridad, FechaRegistroPedido,
+         RutaRecorrida, DistanciaTotal, FechaEntrega)
+        VALUES (@id, @cl, @ip, @pr, @fr, @r, @d, @f)";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@id", idPedido);
+            cmd.Parameters.AddWithValue("@cl", cliente);
+            cmd.Parameters.AddWithValue("@ip", idPunto);
+            cmd.Parameters.AddWithValue("@pr", prioridad);
+            cmd.Parameters.AddWithValue("@fr", fechaRegistroPedido);
+            cmd.Parameters.AddWithValue("@r", ruta);
+            cmd.Parameters.AddWithValue("@d", distancia);
+            cmd.Parameters.AddWithValue("@f", fechaEntrega);
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<(int idPedido, string cliente, int idPunto, int prioridad,
+            string fechaRegistroPedido, string rutaRecorrida,
+            double distanciaTotal, string fechaEntrega)> CargarHistorial()
+        {
+            var lista = new List<(int, string, int, int, string, string, double, string)>();
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = @"SELECT IdPedido, Cliente, IdPunto, Prioridad, FechaRegistroPedido,
+                          RutaRecorrida, DistanciaTotal, FechaEntrega
+                   FROM Historial ORDER BY FechaEntrega ASC";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+                lista.Add((reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2),
+                           reader.GetInt32(3), reader.GetString(4), reader.GetString(5),
+                           reader.GetDouble(6), reader.GetString(7)));
+            return lista;
+        }
+
 
         public int InsertarPunto(string nombre, double x, double y)
         {
@@ -144,6 +210,78 @@ namespace DeliveryRouteManager.Database
             cmd.Parameters.AddWithValue("@d", distancia);
             cmd.Parameters.AddWithValue("@f", fecha);
             cmd.ExecuteNonQuery();
+        }
+
+        // ── POSICIONES ────────────────────────────────────────────────────────────────
+        public void ActualizarPosicionPunto(int id, double x, double y)
+        {
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = "UPDATE Puntos SET X = @x, Y = @y WHERE Id = @id";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@x", x);
+            cmd.Parameters.AddWithValue("@y", y);
+            cmd.ExecuteNonQuery();
+        }
+
+        // ── PEDIDOS ───────────────────────────────────────────────────────────────────
+        public List<(int id, string cliente, int idPunto, int prioridad, string fechaRegistro)> CargarPedidos()
+        {
+            var lista = new List<(int, string, int, int, string)>();
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = "SELECT Id, Cliente, IdPunto, Prioridad, FechaRegistro FROM Pedidos ORDER BY Prioridad, FechaRegistro";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+                lista.Add((reader.GetInt32(0), reader.GetString(1),
+                           reader.GetInt32(2), reader.GetInt32(3), reader.GetString(4)));
+            return lista;
+        }
+
+        public void EliminarPedido(int id)
+        {
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = "DELETE FROM Pedidos WHERE Id = @id";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+
+        public List<(int idPedido, string cliente, string nombrePunto,
+    int prioridad, string rutaRecorrida,
+    double distanciaTotal, string fechaEntrega)> CargarHistorialCompleto()
+        {
+            var lista = new List<(int, string, string, int, string, double, string)>();
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = @"
+        SELECT h.IdPedido,
+               h.Cliente,
+               COALESCE(p.Nombre, 'Punto #' || h.IdPunto) AS NombrePunto,
+               h.Prioridad,
+               h.RutaRecorrida,
+               h.DistanciaTotal,
+               h.FechaEntrega
+        FROM   Historial h
+        LEFT JOIN Puntos p ON h.IdPunto = p.Id
+        ORDER  BY h.FechaEntrega DESC";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+                lista.Add((
+                    reader.GetInt32(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3),
+                    reader.GetString(4),
+                    reader.GetDouble(5),
+                    reader.GetString(6)
+                ));
+            return lista;
         }
 
     }
