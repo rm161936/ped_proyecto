@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryRouteManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ddaf84f193e9436cbd221399a27e898360d6aaa1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+128fe30db005ac9261d8eddf7a2a759e76f0fbb9")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryRouteManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryRouteManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
