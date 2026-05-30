@@ -46,3 +46,4 @@ C:\Users\fcortez\Documents\UDB\PED\DeliveryRouteManager\DeliveryRouteManager\bin
 C:\Users\fcortez\Documents\UDB\PED\DeliveryRouteManager\DeliveryRouteManager\bin\Debug\net8.0-windows\runtimes\win-x64\native\e_sqlite3.dll
 C:\Users\fcortez\Documents\UDB\PED\DeliveryRouteManager\DeliveryRouteManager\bin\Debug\net8.0-windows\runtimes\win-x86\native\e_sqlite3.dll
 C:\Users\fcortez\Documents\UDB\PED\DeliveryRouteManager\DeliveryRouteManager\obj\Debug\net8.0-windows\Delivery.FDB0763A.Up2Date
+C:\Users\fcortez\Documents\UDB\PED\DeliveryRouteManager\DeliveryRouteManager\obj\Debug\net8.0-windows\DeliveryRouteManager.sourcelink.json

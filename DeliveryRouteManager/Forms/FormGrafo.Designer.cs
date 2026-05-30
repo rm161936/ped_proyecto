@@ -1,12 +1,15 @@
-﻿namespace DeliveryRouteManager.Forms
+namespace DeliveryRouteManager.Forms
 {
     partial class FormGrafo
     {
         private System.ComponentModel.IContainer components = null;
 
-        private Panel panelCanvas;
-        private Panel panelControles;
+        // ── Área principal ───────────────────────────────────────────────────────
+        private Panel panelLeft;
         private System.Windows.Forms.PictureBox canvasGrafo;
+
+        // ── Panel controles (derecha) ────────────────────────────────────────────
+        private Panel panelControles;
 
         private GroupBox grpAgregarPunto;
         private Label lblNombrePunto;
@@ -28,8 +31,16 @@
         private System.Windows.Forms.ComboBox cmbOrigen;
         private System.Windows.Forms.ComboBox cmbDestino;
         private System.Windows.Forms.Button btnCalcularRuta;
+
+        // ── Barra resultado Dijkstra ─────────────────────────────────────────────
         private Label lblResultadoRuta;
+
+        // ── Panel trazabilidad (inferior izquierdo) ──────────────────────────────
+        private Panel panelTrazabilidad;
+        private GroupBox grpLog;
         private Label lblNodoInfo;
+        private System.Windows.Forms.RichTextBox rtbLog;
+        private System.Windows.Forms.Button btnLimpiarLog;
 
         protected override void Dispose(bool disposing)
         {
@@ -41,17 +52,20 @@
         private void InitializeComponent()
         {
             this.Text = "Gestión de Rutas y Puntos";
-            this.Size = new System.Drawing.Size(1100, 640);
+            this.Size = new System.Drawing.Size(1100, 700);
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.MinimumSize = new System.Drawing.Size(900, 560);
 
-            // ── PANEL CONTROLES ─────────────────────────────────
+            // ════════════════════════════════════════════════════════════════════
+            // PANEL CONTROLES — derecha
+            // ════════════════════════════════════════════════════════════════════
             this.panelControles = new Panel();
             this.panelControles.Dock = System.Windows.Forms.DockStyle.Right;
             this.panelControles.Width = 280;
             this.panelControles.BackColor = System.Drawing.Color.FromArgb(245, 245, 245);
             this.panelControles.Padding = new System.Windows.Forms.Padding(10);
 
-            // ── AGREGAR PUNTO ───────────────────────────────────
+            // ── Agregar Punto ────────────────────────────────────────────────────
             this.grpAgregarPunto = new GroupBox();
             this.grpAgregarPunto.Text = "Nuevo Punto de Entrega";
             this.grpAgregarPunto.Location = new System.Drawing.Point(10, 10);
@@ -77,7 +91,7 @@
                 this.lblNombrePunto, this.txtNombrePunto, this.btnAgregarPunto
             });
 
-            // ── AGREGAR RUTA ────────────────────────────────────
+            // ── Agregar Ruta ─────────────────────────────────────────────────────
             this.grpAgregarRuta = new GroupBox();
             this.grpAgregarRuta.Text = "Nueva Ruta entre Puntos";
             this.grpAgregarRuta.Location = new System.Drawing.Point(10, 115);
@@ -125,7 +139,7 @@
                 this.lblPeso, this.txtPeso, this.btnAgregarRuta
             });
 
-            // ── CALCULAR RUTA ───────────────────────────────────
+            // ── Calcular Ruta ────────────────────────────────────────────────────
             this.grpCalcular = new GroupBox();
             this.grpCalcular.Text = "Calcular Ruta más Corta (Dijkstra)";
             this.grpCalcular.Location = new System.Drawing.Point(10, 275);
@@ -169,7 +183,83 @@
                 this.grpAgregarPunto, this.grpAgregarRuta, this.grpCalcular
             });
 
-            // ── CANVAS ──────────────────────────────────────────
+            // ════════════════════════════════════════════════════════════════════
+            // PANEL TRAZABILIDAD — inferior izquierdo (dentro de panelLeft)
+            // ════════════════════════════════════════════════════════════════════
+            this.panelTrazabilidad = new Panel();
+            this.panelTrazabilidad.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelTrazabilidad.Height = 170;
+            this.panelTrazabilidad.BackColor = System.Drawing.Color.FromArgb(248, 248, 250);
+            this.panelTrazabilidad.Padding = new System.Windows.Forms.Padding(6, 4, 6, 4);
+
+            this.grpLog = new GroupBox();
+            this.grpLog.Text = "Registro de actividad";
+            this.grpLog.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.grpLog.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+
+            // ── Cabecera del log: info de nodo + botón limpiar
+            Panel panelLogHeader = new Panel();
+            panelLogHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            panelLogHeader.Height = 26;
+            panelLogHeader.Padding = new System.Windows.Forms.Padding(2, 2, 2, 0);
+
+            this.lblNodoInfo = new Label();
+            this.lblNodoInfo.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblNodoInfo.ForeColor = System.Drawing.Color.FromArgb(80, 80, 80);
+            this.lblNodoInfo.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Regular);
+            this.lblNodoInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblNodoInfo.Text = "Haz clic sobre un nodo del grafo para ver su información";
+
+            this.btnLimpiarLog = new System.Windows.Forms.Button();
+            this.btnLimpiarLog.Text = "Limpiar";
+            this.btnLimpiarLog.Dock = System.Windows.Forms.DockStyle.Right;
+            this.btnLimpiarLog.Width = 68;
+            this.btnLimpiarLog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLimpiarLog.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(180, 180, 180);
+            this.btnLimpiarLog.ForeColor = System.Drawing.Color.FromArgb(90, 90, 90);
+            this.btnLimpiarLog.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular);
+            this.btnLimpiarLog.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnLimpiarLog.Click += new System.EventHandler(this.btnLimpiarLog_Click);
+
+            // Orden: limpiar (Right) primero, luego lblNodoInfo (Fill) toma el resto
+            panelLogHeader.Controls.Add(this.lblNodoInfo);
+            panelLogHeader.Controls.Add(this.btnLimpiarLog);
+
+            // ── RichTextBox: cuerpo del log
+            this.rtbLog = new System.Windows.Forms.RichTextBox();
+            this.rtbLog.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.rtbLog.ReadOnly = true;
+            this.rtbLog.BackColor = System.Drawing.Color.FromArgb(252, 252, 254);
+            this.rtbLog.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.rtbLog.Font = new System.Drawing.Font("Consolas", 8.5F);
+            this.rtbLog.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
+            this.rtbLog.WordWrap = false;
+
+            // grpLog: panelLogHeader (Top) + rtbLog (Fill)
+            // Docking: último agregado = z-order 0 = se ancla primero
+            // → panelLogHeader (index 0 en Controls = z alto) ancla Top
+            // → rtbLog (index 1 = z bajo = ancla después) Fill
+            this.grpLog.Controls.Add(this.rtbLog);         // Fill  (index 0, z alto)
+            this.grpLog.Controls.Add(panelLogHeader);       // Top   (index 1, z bajo → Top primero)
+
+            this.panelTrazabilidad.Controls.Add(this.grpLog);
+
+            // ════════════════════════════════════════════════════════════════════
+            // BARRA RESULTADO DIJKSTRA
+            // ════════════════════════════════════════════════════════════════════
+            this.lblResultadoRuta = new Label();
+            this.lblResultadoRuta.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.lblResultadoRuta.Height = 24;
+            this.lblResultadoRuta.BackColor = System.Drawing.Color.FromArgb(230, 240, 255);
+            this.lblResultadoRuta.ForeColor = System.Drawing.Color.FromArgb(30, 80, 160);
+            this.lblResultadoRuta.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblResultadoRuta.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
+            this.lblResultadoRuta.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.lblResultadoRuta.Text = "Selecciona origen y destino para calcular la ruta más corta";
+
+            // ════════════════════════════════════════════════════════════════════
+            // CANVAS GRAFO
+            // ════════════════════════════════════════════════════════════════════
             this.canvasGrafo = new System.Windows.Forms.PictureBox();
             this.canvasGrafo.Dock = System.Windows.Forms.DockStyle.Fill;
             this.canvasGrafo.BackColor = System.Drawing.Color.White;
@@ -177,27 +267,27 @@
             this.canvasGrafo.Paint += new System.Windows.Forms.PaintEventHandler(this.canvasGrafo_Paint);
             this.canvasGrafo.MouseClick += new System.Windows.Forms.MouseEventHandler(this.canvasGrafo_MouseClick);
 
-            // ── LABELS DE ESTADO ────────────────────────────────
-            this.lblResultadoRuta = new Label();
-            this.lblResultadoRuta.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblResultadoRuta.Height = 24;
-            this.lblResultadoRuta.BackColor = System.Drawing.Color.FromArgb(230, 240, 255);
-            this.lblResultadoRuta.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.lblResultadoRuta.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
-            this.lblResultadoRuta.Text = "Selecciona origen y destino para calcular la ruta más corta";
+            // ════════════════════════════════════════════════════════════════════
+            // PANEL LEFT — envuelve canvas + resultado + trazabilidad
+            // Orden de Controls.Add determina z-order:
+            //   último agregado = z 0 = se ancla primero
+            //   panelTrazabilidad (último) → Bottom (muy abajo)
+            //   lblResultadoRuta  (penúlt) → Bottom (sobre trazabilidad)
+            //   canvasGrafo       (primero)→ Fill   (espacio restante)
+            // ════════════════════════════════════════════════════════════════════
+            this.panelLeft = new Panel();
+            this.panelLeft.Dock = System.Windows.Forms.DockStyle.Fill;
 
-            this.lblNodoInfo = new Label();
-            this.lblNodoInfo.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblNodoInfo.Height = 22;
-            this.lblNodoInfo.BackColor = System.Drawing.Color.FromArgb(245, 245, 245);
-            this.lblNodoInfo.ForeColor = System.Drawing.Color.DimGray;
-            this.lblNodoInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.lblNodoInfo.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
-            this.lblNodoInfo.Text = "Haz clic sobre un nodo para ver su info";
+            this.panelLeft.Controls.Add(this.canvasGrafo);         // z=2  Fill
+            this.panelLeft.Controls.Add(this.lblResultadoRuta);    // z=1  Bottom
+            this.panelLeft.Controls.Add(this.panelTrazabilidad);   // z=0  Bottom (primero en anclar)
 
-            this.Controls.Add(this.canvasGrafo);
-            this.Controls.Add(this.lblResultadoRuta);
-            this.Controls.Add(this.lblNodoInfo);
+            // ════════════════════════════════════════════════════════════════════
+            // FORM — panelLeft (Fill) + panelControles (Right)
+            //   panelControles último = z 0 = se ancla primero (reclama franja derecha)
+            //   panelLeft (Fill) ocupa el resto
+            // ════════════════════════════════════════════════════════════════════
+            this.Controls.Add(this.panelLeft);
             this.Controls.Add(this.panelControles);
         }
     }

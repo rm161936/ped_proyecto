@@ -52,6 +52,7 @@ namespace DeliveryRouteManager.Database
                 CREATE TABLE IF NOT EXISTS Historial (
                     Id             INTEGER PRIMARY KEY AUTOINCREMENT,
                     IdPedido       INTEGER NOT NULL,
+                    Cliente        TEXT    NOT NULL DEFAULT '',
                     RutaRecorrida  TEXT    NOT NULL,
                     DistanciaTotal REAL    NOT NULL,
                     FechaEntrega   TEXT    NOT NULL
@@ -59,6 +60,15 @@ namespace DeliveryRouteManager.Database
 
             using SqliteCommand cmd = new SqliteCommand(sql, conn);
             cmd.ExecuteNonQuery();
+
+            // Migración: agregar columna Cliente si no existe (bases de datos previas)
+            try
+            {
+                using SqliteCommand mig = new SqliteCommand(
+                    "ALTER TABLE Historial ADD COLUMN Cliente TEXT NOT NULL DEFAULT ''", conn);
+                mig.ExecuteNonQuery();
+            }
+            catch { /* columna ya existe, se ignora */ }
         }
 
         public int InsertarPunto(string nombre, double x, double y)
@@ -132,18 +142,63 @@ namespace DeliveryRouteManager.Database
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
-        public void InsertarHistorial(int idPedido, string ruta, double distancia, string fecha)
+        public void InsertarHistorial(int idPedido, string cliente, string ruta, double distancia, string fecha)
         {
             using SqliteConnection conn = new SqliteConnection(_connectionString);
             conn.Open();
-            string sql = @"INSERT INTO Historial (IdPedido, RutaRecorrida, DistanciaTotal, FechaEntrega)
-                           VALUES (@id, @r, @d, @f)";
+            string sql = @"INSERT INTO Historial (IdPedido, Cliente, RutaRecorrida, DistanciaTotal, FechaEntrega)
+                           VALUES (@id, @cl, @r, @d, @f)";
             using SqliteCommand cmd = new SqliteCommand(sql, conn);
             cmd.Parameters.AddWithValue("@id", idPedido);
+            cmd.Parameters.AddWithValue("@cl", cliente);
             cmd.Parameters.AddWithValue("@r", ruta);
             cmd.Parameters.AddWithValue("@d", distancia);
             cmd.Parameters.AddWithValue("@f", fecha);
             cmd.ExecuteNonQuery();
+        }
+
+        public List<(int Id, string Cliente, int IdPunto, int Prioridad, string FechaRegistro)> CargarPedidosRaw()
+        {
+            var lista = new List<(int, string, int, int, string)>();
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = "SELECT Id, Cliente, IdPunto, Prioridad, FechaRegistro FROM Pedidos ORDER BY Prioridad, FechaRegistro";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+                lista.Add((reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetString(4)));
+            return lista;
+        }
+
+        public void EliminarPedido(int id)
+        {
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = "DELETE FROM Pedidos WHERE Id = @id";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<(int Id, int IdPedido, string Cliente, string RutaRecorrida, double DistanciaTotal, string FechaEntrega)> CargarHistorialCompleto()
+        {
+            var lista = new List<(int, int, string, string, double, string)>();
+            using SqliteConnection conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            string sql = @"SELECT Id, IdPedido, Cliente, RutaRecorrida, DistanciaTotal, FechaEntrega
+                           FROM Historial ORDER BY Id DESC";
+            using SqliteCommand cmd = new SqliteCommand(sql, conn);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+                lista.Add((
+                    reader.GetInt32(0),
+                    reader.GetInt32(1),
+                    reader.IsDBNull(2) ? "" : reader.GetString(2),
+                    reader.GetString(3),
+                    reader.GetDouble(4),
+                    reader.GetString(5)
+                ));
+            return lista;
         }
 
     }
